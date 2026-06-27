@@ -19,7 +19,8 @@ function toISO(year: number, month: number, day: number) {
 function isoToDate(s: string) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_DESKTOP = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_MOBILE = ["S","M","T","W","T","F","S"];
 
 export default function CalendarView({ members, conflicts, onAddConflict, onEditConflict }: Props) {
   const now = new Date();
@@ -49,7 +50,6 @@ export default function CalendarView({ members, conflicts, onAddConflict, onEdit
 
   const todayISO = toISO(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Availability summary: days where at least one member has NO conflicts
   const getMemberMap = (day: number) => {
     const iso = toISO(year, month, day);
     const date = isoToDate(iso);
@@ -63,49 +63,50 @@ export default function CalendarView({ members, conflicts, onAddConflict, onEdit
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={prev} style={navBtn}><ChevronLeft size={18} /></button>
-          <h2 style={{ fontSize: 22, fontWeight: 800, minWidth: 200 }}>{MONTHS[month]} {year}</h2>
-          <button onClick={next} style={navBtn}><ChevronRight size={18} /></button>
-          <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }} style={{ padding: "6px 12px", border: "1px solid var(--border)", borderRadius: 7, background: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Today</button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={prev} style={navBtn}><ChevronLeft size={16} /></button>
+          <h2 style={{ fontSize: "clamp(15px, 4vw, 22px)", fontWeight: 800, minWidth: 0, whiteSpace: "nowrap" }}>{MONTHS[month]} {year}</h2>
+          <button onClick={next} style={navBtn}><ChevronRight size={16} /></button>
+          <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }} style={{ padding: "5px 8px", border: "1px solid var(--border)", borderRadius: 7, background: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Today</button>
         </div>
-        <button onClick={() => onAddConflict(todayISO)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "var(--text)", color: "#fff", border: "none", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-          <Plus size={15} /> Add Conflict
+        <button onClick={() => onAddConflict(todayISO)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", background: "var(--text)", color: "#fff", border: "none", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>
+          <Plus size={14} /> Add
         </button>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+      {/* Filters — horizontally scrollable on mobile */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
         {members.map(m => (
-          <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, border: `2px solid ${filterMember === m.id ? m.color : "var(--border)"}`, background: filterMember === m.id ? m.color + "18" : "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+          <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${filterMember === m.id ? m.color : "var(--border)"}`, background: filterMember === m.id ? m.color + "18" : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
             {m.emoji} {m.name}
           </button>
         ))}
         {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
-          <button key={key} onClick={() => setFilterCat(filterCat === key ? null : key)} style={{ padding: "6px 12px", borderRadius: 20, border: `2px solid ${filterCat === key ? cfg.color : "var(--border)"}`, background: filterCat === key ? cfg.bg : "var(--surface)", color: filterCat === key ? cfg.color : "var(--text-muted)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+          <button key={key} onClick={() => setFilterCat(filterCat === key ? null : key)} style={{ padding: "5px 10px", borderRadius: 20, border: `2px solid ${filterCat === key ? cfg.color : "var(--border)"}`, background: filterCat === key ? cfg.bg : "var(--surface)", color: filterCat === key ? cfg.color : "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
             {cfg.label}
           </button>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
         {/* Day of week headers */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--border)" }}>
-          {DOW.map(d => (
-            <div key={d} style={{ textAlign: "center", padding: "10px 0", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em" }}>{d}</div>
+          {DOW_DESKTOP.map((d, i) => (
+            <div key={d} style={{ textAlign: "center", padding: "8px 0", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+              <span className="desktop-only">{DOW_DESKTOP[i]}</span>
+              <span className="mobile-only">{DOW_MOBILE[i]}</span>
+            </div>
           ))}
         </div>
 
         {/* Cells */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
-          {/* Empty cells */}
           {Array.from({ length: startDow }).map((_, i) => (
-            <div key={`e${i}`} style={{ minHeight: 100, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "#fafaf8" }} />
+            <div key={`e${i}`} style={{ minHeight: "clamp(48px, 12vw, 100px)", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", background: "#fafaf8" }} />
           ))}
 
-          {/* Day cells */}
           {Array.from({ length: days }).map((_, i) => {
             const day = i + 1;
             const iso = toISO(year, month, day);
@@ -115,28 +116,30 @@ export default function CalendarView({ members, conflicts, onAddConflict, onEdit
             const allFree = members.length > 0 && free.length === members.length;
 
             return (
-              <div key={day} onClick={() => onAddConflict(iso)} style={{ minHeight: 100, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: 8, cursor: "pointer", background: allFree ? "#f0fdf4" : "var(--surface)", transition: "background .15s", position: "relative" }}
+              <div key={day} onClick={() => onAddConflict(iso)}
+                style={{ minHeight: "clamp(48px, 12vw, 100px)", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "4px", cursor: "pointer", background: allFree ? "#f0fdf4" : "var(--surface)", position: "relative" }}
                 onMouseEnter={e => (e.currentTarget.style.background = allFree ? "#dcfce7" : "var(--bg)")}
                 onMouseLeave={e => (e.currentTarget.style.background = allFree ? "#f0fdf4" : "var(--surface)")}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: isToday ? 800 : 500, fontSize: 13, background: isToday ? "var(--text)" : "none", color: isToday ? "#fff" : "var(--text)" }}>{day}</span>
-                  {allFree && members.length > 0 && <span style={{ fontSize: 10, color: "#2f9e44", fontWeight: 700 }}>ALL FREE</span>}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ width: "clamp(18px, 5vw, 26px)", height: "clamp(18px, 5vw, 26px)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: isToday ? 800 : 500, fontSize: "clamp(10px, 3vw, 13px)", background: isToday ? "var(--text)" : "none", color: isToday ? "#fff" : "var(--text)" }}>{day}</span>
+                  {allFree && members.length > 0 && <span style={{ fontSize: 8, color: "#2f9e44", fontWeight: 700 }} className="desktop-only">FREE</span>}
                 </div>
 
-                {/* Conflict pills */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  {dayConflicts.slice(0, 3).map(c => {
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {dayConflicts.slice(0, 2).map(c => {
                     const cfg = CATEGORY_CONFIG[c.category];
                     const member = members.find(m => m.id === c.memberId);
                     return (
-                      <div key={c.id} onClick={e => { e.stopPropagation(); onEditConflict(c); }} style={{ padding: "2px 6px", borderRadius: 5, background: cfg.bg, color: cfg.color, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, cursor: "pointer", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: member?.color || cfg.color, flexShrink: 0 }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</span>
+                      <div key={c.id} onClick={e => { e.stopPropagation(); onEditConflict(c); }}
+                        style={{ padding: "1px 4px", borderRadius: 4, background: cfg.bg, color: cfg.color, fontSize: "clamp(8px, 2.5vw, 11px)", fontWeight: 600, display: "flex", alignItems: "center", gap: 3, cursor: "pointer", overflow: "hidden" }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: member?.color || cfg.color, flexShrink: 0 }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} className="desktop-only">{c.title}</span>
+                        <span className="mobile-only">{cfg.label[0]}</span>
                       </div>
                     );
                   })}
-                  {dayConflicts.length > 3 && <span style={{ fontSize: 11, color: "var(--text-muted)", paddingLeft: 2 }}>+{dayConflicts.length - 3} more</span>}
+                  {dayConflicts.length > 2 && <span style={{ fontSize: "clamp(7px, 2vw, 11px)", color: "var(--text-muted)", paddingLeft: 2 }}>+{dayConflicts.length - 2}</span>}
                 </div>
               </div>
             );
@@ -147,4 +150,4 @@ export default function CalendarView({ members, conflicts, onAddConflict, onEdit
   );
 }
 
-const navBtn: React.CSSProperties = { background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 8px", cursor: "pointer", display: "flex", alignItems: "center" };
+const navBtn: React.CSSProperties = { background: "none", border: "1px solid var(--border)", borderRadius: 8, padding: "5px 7px", cursor: "pointer", display: "flex", alignItems: "center" };

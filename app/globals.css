@@ -17,4 +17,12 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
+
+/* Responsive helpers */
+@media (max-width: 640px) {
+  .desktop-only { display: none !important; }
+}
+@media (min-width: 641px) {
+  .mobile-only { display: none !important; }
+}
