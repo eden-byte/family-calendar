@@ -1,0 +1,136 @@
+"use client";
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import type { Conflict, FamilyMember, ConflictCategory } from "@/lib/types";
+import { CATEGORY_CONFIG } from "@/lib/types";
+
+interface Props {
+  members: FamilyMember[];
+  conflict?: Conflict | null;
+  defaultDate?: string;
+  onSave: (c: Conflict) => void;
+  onClose: () => void;
+}
+
+function genId() { return Math.random().toString(36).slice(2); }
+function today() { return new Date().toISOString().slice(0, 10); }
+
+export default function ConflictModal({ members, conflict, defaultDate, onSave, onClose }: Props) {
+  const [memberId, setMemberId] = useState(conflict?.memberId || members[0]?.id || "");
+  const [title, setTitle] = useState(conflict?.title || "");
+  const [category, setCategory] = useState<ConflictCategory>(conflict?.category || "work");
+  const [startDate, setStartDate] = useState(conflict?.startDate || defaultDate || today());
+  const [endDate, setEndDate] = useState(conflict?.endDate || defaultDate || today());
+  const [allDay, setAllDay] = useState(conflict?.allDay ?? true);
+  const [startTime, setStartTime] = useState(conflict?.startTime || "09:00");
+  const [endTime, setEndTime] = useState(conflict?.endTime || "17:00");
+  const [notes, setNotes] = useState(conflict?.notes || "");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (endDate < startDate) setEndDate(startDate);
+  }, [startDate]);
+
+  const submit = () => {
+    if (!title.trim()) { setError("Please enter a title."); return; }
+    if (!memberId) { setError("Please select a family member."); return; }
+    onSave({ id: conflict?.id || genId(), memberId, title: title.trim(), category, startDate, endDate, allDay, startTime: allDay ? undefined : startTime, endTime: allDay ? undefined : endTime, notes: notes.trim() || undefined });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 18, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+        <div style={{ padding: "20px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{conflict ? "Edit Conflict" : "Add Conflict"}</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}><X size={20} /></button>
+        </div>
+
+        <div style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Member */}
+          <Field label="Family Member">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {members.map(m => (
+                <button key={m.id} onClick={() => setMemberId(m.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: `2px solid ${memberId === m.id ? m.color : "var(--border)"}`, background: memberId === m.id ? m.color + "18" : "var(--bg)", cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+                  <span>{m.emoji}</span> {m.name}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {/* Title */}
+          <Field label="Title">
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Team standup, Soccer practice…" style={inputStyle} onKeyDown={e => e.key === "Enter" && submit()} autoFocus />
+          </Field>
+
+          {/* Category */}
+          <Field label="Category">
+            <div style={{ display: "flex", gap: 8 }}>
+              {(Object.keys(CATEGORY_CONFIG) as ConflictCategory[]).map(cat => {
+                const cfg = CATEGORY_CONFIG[cat];
+                const active = category === cat;
+                return (
+                  <button key={cat} onClick={() => setCategory(cat)} style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${active ? cfg.color : "var(--border)"}`, background: active ? cfg.bg : "var(--bg)", color: active ? cfg.color : "var(--text-muted)", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          {/* Dates */}
+          <div style={{ display: "flex", gap: 12 }}>
+            <Field label="Start Date" style={{ flex: 1 }}>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field label="End Date" style={{ flex: 1 }}>
+              <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
+            </Field>
+          </div>
+
+          {/* All day toggle */}
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+            <div onClick={() => setAllDay(!allDay)} style={{ width: 40, height: 22, borderRadius: 11, background: allDay ? "var(--text)" : "var(--border)", position: "relative", transition: "background .2s", cursor: "pointer" }}>
+              <div style={{ position: "absolute", top: 3, left: allDay ? 20 : 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>All day</span>
+          </label>
+
+          {!allDay && (
+            <div style={{ display: "flex", gap: 12 }}>
+              <Field label="Start Time" style={{ flex: 1 }}>
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="End Time" style={{ flex: 1 }}>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+              </Field>
+            </div>
+          )}
+
+          {/* Notes */}
+          <Field label="Notes (optional)">
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any extra details…" rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+          </Field>
+
+          {error && <p style={{ color: "#e64980", fontSize: 13 }}>{error}</p>}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1px solid var(--border)", background: "none", cursor: "pointer", fontWeight: 600, fontSize: 15 }}>Cancel</button>
+            <button onClick={submit} style={{ flex: 2, padding: "11px", borderRadius: 10, border: "none", background: "var(--text)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 15 }}>Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={style}>
+      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 7 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: 9, fontSize: 14, background: "var(--bg)", color: "var(--text)", outline: "none", fontFamily: "inherit" };
